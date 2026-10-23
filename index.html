@@ -1,0 +1,1274 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="theme-color" content="#2b86ff" />
+  <title>🎵 LoL Player</title>
+
+  <link rel="apple-touch-icon" sizes="180x180" href="https://iili.io/BWMNdRs.jpg">
+  <link rel="apple-touch-icon" sizes="152x152" href="https://iili.io/BWMNdRs.jpg">
+  <link rel="apple-touch-icon" sizes="167x167" href="https://iili.io/BWMNdRs.jpg">
+  <link rel="apple-touch-icon" sizes="120x120" href="https://iili.io/BWMNdRs.jpg">
+  <link rel="manifest" href="manifest.json" id="manifestLink">
+  <link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+    body {
+      font-family: 'Comfortaa', 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: radial-gradient(900px 600px at 15% -10%, rgba(43,134,255,.22), transparent 60%),
+                  radial-gradient(850px 550px at 85% 0%, rgba(168,85,247,.18), transparent 58%),
+                  radial-gradient(900px 700px at 60% 110%, rgba(34,197,94,.10), transparent 55%),
+                  #070a10;
+      min-height: 100vh; min-height: 100dvh; color: #eaf1ff; overflow-x: hidden; user-select: none; padding: 16px; padding-bottom: 30px;
+    }
+    .container { max-width: 600px; margin: 0 auto; }
+    .btn {
+      background: rgba(40,40,50,.85); backdrop-filter: blur(12px);
+      background-image: linear-gradient(rgba(40,40,50,.85), rgba(40,40,50,.85)), linear-gradient(120deg, #5B8CFF, #8A5BFF, #5B8CFF);
+      background-origin: border-box; background-clip: padding-box, border-box;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.05), 0 8px 18px rgba(0,0,0,.6);
+      cursor: pointer; transition: .2s; border-radius: 50px; padding: 12px 24px;
+      font-weight: 700; color: white; font-size: 16px; font-family: 'Comfortaa', sans-serif;
+      display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+      border: 2px solid transparent;
+    }
+    .btn:hover { box-shadow: 0 0 12px rgba(120,140,255,.35), 0 8px 18px rgba(0,0,0,.6); transform: translateY(-2px); }
+    .btn:active { transform: scale(.97); }
+    .btn-danger { background:rgba(239,68,68,0.2); border-color:#ef4444; color:#fecaca; }
+    .btn-sm { padding:8px 16px; font-size:13px; }
+    .btn-block { width:100%; justify-content:center; }
+    .input {
+      width: 100%; padding: 14px 16px; background: rgba(40,40,50,.85); backdrop-filter: blur(12px);
+      border: 2px solid transparent;
+      background-image: linear-gradient(rgba(40,40,50,.85), rgba(40,40,50,.85)), linear-gradient(120deg, #5B8CFF, #8A5BFF, #5B8CFF);
+      background-origin: border-box; background-clip: padding-box, border-box;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.05), 0 8px 18px rgba(0,0,0,.6);
+      border-radius: 16px; color: #eaf1ff; font-size: 16px; font-family: 'Comfortaa', sans-serif; transition: .2s; box-sizing: border-box;
+    }
+    .input:focus { outline:none; box-shadow:0 0 12px rgba(120,140,255,.35), 0 8px 18px rgba(0,0,0,.6); }
+    .input::placeholder { color: rgba(234,241,255,.3); }
+    .hidden { display: none !important; }
+    .mt-8 { margin-top: 8px; }
+    .mt-16 { margin-top: 16px; }
+    .flex { display: flex; }
+    .flex-center { display: flex; align-items: center; justify-content: center; }
+    .flex-between { display: flex; align-items: center; justify-content: space-between; }
+    .flex-col { display: flex; flex-direction: column; }
+    .text-center { text-align: center; }
+    .text-muted { color: rgba(234,241,255,.5); }
+    .text-sm { font-size: 13px; }
+    .w-full { width: 100%; }
+    .gap-8 { gap: 8px; }
+    .gap-12 { gap: 12px; }
+    .gap-16 { gap: 16px; }
+    .toast {
+      position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
+      background: rgba(0,0,0,0.85); backdrop-filter: blur(12px);
+      padding: 12px 24px; border-radius: 60px; color: #fff; font-size: 14px; font-weight: 600;
+      border: 1px solid rgba(255,255,255,0.08); z-index: 9999; animation: slideUp 0.3s ease; max-width: 90%; white-space: nowrap;
+    }
+    .toast.success { background: #15803d; }
+    .toast.error { background: #b91c1c; }
+    .toast.info { background: #1e293b; }
+    @keyframes slideUp {
+      from { transform: translateX(-50%) translateY(20px); opacity: 0; }
+      to { transform: translateX(-50%) translateY(0); opacity: 1; }
+    }
+    .spinner {
+      display: inline-block; width: 24px; height: 24px;
+      border: 3px solid rgba(255,255,255,0.1); border-radius: 50%; border-top-color: #3b82f6;
+      animation: spin 1s ease-in-out infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    #offlineBanner {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 9998;
+      background: linear-gradient(90deg, #b45309, #dc2626);
+      color: #fff; text-align: center; padding: 6px; font-size: 13px; font-weight: 600;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+    }
+
+    .player-header {
+      display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; gap: 12px; flex-wrap: wrap;
+    }
+    .player-header h1 {
+      font-size: 24px; font-weight: 700;
+      background: linear-gradient(135deg, #60a5fa, #a78bfa);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin: 0;
+    }
+    .player-header-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    .player-header-actions button {
+      background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.1); color: #fff;
+      padding: 8px 14px; border-radius: 12px; cursor: pointer; font-size: 13px; transition: 0.3s;
+      display: flex; align-items: center; gap: 5px; font-family: 'Comfortaa', sans-serif;
+    }
+    .player-header-actions button:hover { background:rgba(255,255,255,0.15); transform:translateY(-2px); }
+    .player-header-actions button:active { transform:scale(0.95); }
+    .auth-status-btn { background: rgba(59,130,246,0.15) !important; border-color: #3b82f6 !important; color: #60a5fa !important; }
+    .auth-status-btn.logged-in { background: rgba(34,197,94,0.15) !important; border-color: #22c55e !important; color: #22c55e !important; }
+
+    .track-list { display: flex; flex-direction: column; gap: 8px; max-height: 400px; overflow-y: auto; padding-right: 4px; margin-bottom: 20px; }
+    .track-list::-webkit-scrollbar { width: 3px; }
+    .track-list::-webkit-scrollbar-track { background:rgba(255,255,255,0.05); border-radius:10px; }
+    .track-list::-webkit-scrollbar-thumb { background:rgba(255,255,255,0.2); border-radius:10px; }
+    .track-item {
+      display: flex; align-items: center; gap: 12px; background: rgba(255,255,255,0.04);
+      padding: 10px 14px; border-radius: 14px; cursor: pointer; transition: 0.3s;
+      border: 1px solid rgba(255,255,255,0.04);
+    }
+    .track-item:hover { background:rgba(255,255,255,0.08); transform:translateX(4px); }
+    .track-item:active { transform:scale(0.98); }
+    .track-item.active { background:rgba(59,130,246,0.15); border-color:rgba(59,130,246,0.3); }
+    .track-cover { width: 46px; height: 46px; border-radius: 10px; flex-shrink: 0; overflow: hidden; background: linear-gradient(135deg, #3b82f6, #8b5cf6); display: flex; align-items: center; justify-content: center; font-size: 20px; }
+    .track-cover img { width:100%; height:100%; object-fit:cover; }
+    .track-cover .no-cover { color:rgba(255,255,255,0.5); font-size:11px; }
+    .track-info { flex:1; min-width:0; }
+    .track-title { font-weight:500; font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .track-artist { font-size:12px; color:rgba(255,255,255,0.5); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .track-actions { display:flex; gap:2px; flex-shrink:0; }
+    .track-actions button { background: none; border: none; color: rgba(255,255,255,0.3); cursor: pointer; font-size: 16px; padding: 5px; border-radius: 8px; transition: 0.2s; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; }
+    .track-actions button:hover { background:rgba(255,255,255,0.08); color:#fff; }
+    .track-actions .edit-btn:hover { color:#60a5fa; }
+    .track-actions .delete-btn:hover { color:#f87171; }
+    .track-actions button:active { transform:scale(0.85); }
+    .track-badge { font-size: 10px; padding: 2px 8px; border-radius: 20px; background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.4); margin-left: 4px; }
+    .track-badge.cloud { background: rgba(59,130,246,0.15); color: #60a5fa; }
+    .track-badge.local { background: rgba(234,179,8,0.15); color: #fbbf24; }
+
+    .player-widget {
+      background: rgba(255,255,255,0.04); border-radius: 16px; padding: 14px 16px; border: 1px solid rgba(255,255,255,0.06);
+    }
+    .player-widget .player-top { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+    .player-widget .player-cover { width: 50px; height: 50px; border-radius: 10px; overflow: hidden; background: linear-gradient(135deg, #3b82f6, #8b5cf6); flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 20px; }
+    .player-widget .player-cover img { width:100%; height:100%; object-fit:cover; }
+    .player-widget .player-info { flex:1; min-width:0; }
+    .player-widget .player-info .title { font-weight:600; font-size:15px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .player-widget .player-info .artist { font-size:12px; color:rgba(255,255,255,0.5); }
+    .player-widget .player-controls { display: flex; align-items: center; justify-content: center; gap: 16px; margin: 4px 0; }
+    .player-widget .player-controls button { background: none; border: none; color: #fff; font-size: 22px; cursor: pointer; transition: 0.2s; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+    .player-widget .player-controls button:hover { background:rgba(255,255,255,0.08); }
+    .player-widget .player-controls button:active { transform:scale(0.9); }
+    .player-widget .player-controls .play-btn { background: #3b82f6; font-size: 26px; width: 50px; height: 50px; }
+    .player-widget .player-controls .play-btn:hover { background:#2563eb; }
+    .player-widget .player-slider { width: 100%; -webkit-appearance: none; appearance: none; height: 4px; border-radius: 2px; background: rgba(255,255,255,0.15); outline: none; transition: 0.2s; }
+    .player-widget .player-slider::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 16px; height: 16px; border-radius: 50%; background: #3b82f6; cursor: pointer; box-shadow: 0 0 20px rgba(59,130,246,0.4); }
+    .player-widget .player-slider::-moz-range-thumb { width: 16px; height: 16px; border-radius: 50%; background: #3b82f6; cursor: pointer; border: none; }
+    .player-widget .time-info { display: flex; justify-content: space-between; font-size: 12px; color: rgba(255,255,255,0.4); margin-top: 4px; }
+    .player-widget .speed-control { display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.05); }
+    .player-widget .speed-control label { font-size:13px; color:rgba(255,255,255,0.5); }
+    .player-widget .speed-control input { -webkit-appearance: none; appearance: none; width: 120px; height: 3px; border-radius: 2px; background: rgba(255,255,255,0.15); outline: none; }
+    .player-widget .speed-control input::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 14px; height: 14px; border-radius: 50%; background: #8b5cf6; cursor: pointer; }
+    .player-widget .speed-control input::-moz-range-thumb { width: 14px; height: 14px; border-radius: 50%; background: #8b5cf6; cursor: pointer; border: none; }
+    .player-widget .speed-control .speed-value { font-size: 14px; font-weight: 600; color: #a78bfa; min-width: 36px; text-align: center; }
+
+    .empty-state { text-align: center; padding: 60px 20px; color: rgba(255,255,255,0.3); }
+    .empty-state .icon { font-size: 56px; margin-bottom: 12px; }
+    .empty-state p { font-size: 14px; }
+
+    .modal { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); display: none; align-items: center; justify-content: center; z-index: 1000; padding: 20px; }
+    .modal.active { display: flex; }
+    .modal-content { background: #1e1b4b; border-radius: 24px; padding: 28px; max-width: 420px; width: 100%; border: 1px solid rgba(255,255,255,0.06); box-shadow: 0 30px 60px rgba(0,0,0,0.8); max-height: 90vh; overflow-y: auto; }
+    .modal-content h2 { font-size: 20px; margin-bottom: 20px; color: #e0e7ff; }
+    .modal-content label { display: block; font-size: 13px; color: rgba(255,255,255,0.5); margin-bottom: 4px; margin-top: 14px; }
+    .modal-actions { display: flex; gap: 10px; margin-top: 24px; }
+    .modal-actions button { flex: 1; padding: 10px; border: none; border-radius: 12px; font-size: 15px; font-weight: 600; cursor: pointer; transition: 0.2s; }
+    .modal-actions .save-btn { background: #3b82f6; color: #fff; }
+    .modal-actions .save-btn:hover { background: #2563eb; }
+    .modal-actions .cancel-btn { background: rgba(255,255,255,0.08); color: #fff; }
+    .modal-actions .cancel-btn:hover { background:rgba(255,255,255,0.15); }
+
+    .lol-auth-tabs { display: flex; gap: 8px; margin-bottom: 20px; background: rgba(40,40,50,.85); border-radius: 999px; padding: 6px; border: 1px solid rgba(255,255,255,0.06); }
+    .lol-auth-tabs button { flex: 1; padding: 10px; border: none; border-radius: 999px; background: transparent; color: #6E7BFF; font-size: 14px; font-weight: 600; cursor: pointer; transition: 0.3s; font-family: 'Comfortaa', sans-serif; }
+    .lol-auth-tabs button.active { background: rgba(120,140,255,.15); color: #7AA2FF; box-shadow: 0 0 20px rgba(120,140,255,.15); }
+    .lol-auth-tabs button:hover { color: #7AA2FF; }
+
+    .modal-content .field { margin-bottom: 14px; }
+    .modal-content .field input { width: 100%; padding: 14px 16px; background: rgba(40,40,50,.85); backdrop-filter: blur(12px); border: 2px solid transparent; background-image: linear-gradient(rgba(40,40,50,.85), rgba(40,40,50,.85)), linear-gradient(120deg, #5B8CFF, #8A5BFF, #5B8CFF); background-origin: border-box; background-clip: padding-box, border-box; box-shadow: inset 0 1px 0 rgba(255,255,255,.05), 0 8px 18px rgba(0,0,0,.6); border-radius: 16px; color: #eaf1ff; font-size: 16px; font-family: 'Comfortaa', sans-serif; transition: .2s; box-sizing: border-box; }
+    .modal-content .field input:focus { outline:none; box-shadow:0 0 12px rgba(120,140,255,.35), 0 8px 18px rgba(0,0,0,.6); }
+    .modal-content .field input::placeholder { color: rgba(234,241,255,.3); }
+    .modal-content .msg { padding: 10px 12px; border-radius: 16px; font-weight: 600; margin-bottom: 14px; display: none; font-size: 14px; }
+    .modal-content .msg.show { display: block; }
+    .modal-content .msg.error { color: #fecaca; background: rgba(239,68,68,.14); border: 1px solid rgba(239,68,68,.25); }
+    .modal-content .msg.success { color: #bbf7d0; background: rgba(34,197,94,.12); border: 1px solid rgba(34,197,94,.22); }
+
+    .choice-modal .choice-grid { display: flex; flex-direction: column; gap: 12px; margin: 16px 0; }
+    .choice-modal .choice-grid button { padding: 16px; border-radius: 16px; background: rgba(255,255,255,0.05); border: 2px solid rgba(255,255,255,0.08); color: #fff; font-size: 16px; font-weight: 600; cursor: pointer; transition: 0.3s; font-family: 'Comfortaa', sans-serif; display: flex; align-items: center; gap: 12px; }
+    .choice-modal .choice-grid button:hover { background: rgba(255,255,255,0.1); border-color: #3b82f6; transform: translateY(-2px); }
+    .choice-modal .choice-grid button .icon { font-size: 28px; }
+    .choice-modal .choice-grid button .desc { font-size: 13px; font-weight: 400; color: rgba(255,255,255,0.5); margin-top: 2px; }
+
+    .modal-content .icon-preview-area { display: flex; flex-direction: column; align-items: center; gap: 12px; margin: 12px 0; }
+    .modal-content .icon-preview-box { width: 120px; height: 120px; border-radius: 24px; overflow: hidden; display: flex; align-items: center; justify-content: center; border: 2px solid rgba(255,255,255,0.1); background: transparent; }
+    .modal-content .icon-preview-box img { width:100%; height:100%; object-fit:contain; }
+    .modal-content .icon-preview-box .placeholder { font-size:64px; line-height:1; }
+    .modal-content .icon-emoji-options { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+    .modal-content .icon-emoji-options button { width: 44px; height: 44px; border: 2px solid rgba(255,255,255,0.1); border-radius: 12px; background: rgba(255,255,255,0.05); color: #fff; font-size: 24px; cursor: pointer; transition: 0.3s; }
+    .modal-content .icon-emoji-options button:hover { background:rgba(255,255,255,0.1); }
+    .modal-content .icon-emoji-options button.active { border-color: #3b82f6; background: rgba(59,130,246,0.2); }
+    .modal-content .file-upload-area { border: 2px dashed rgba(255,255,255,0.15); border-radius: 12px; padding: 20px; text-align: center; cursor: pointer; transition: 0.3s; margin: 8px 0; }
+    .modal-content .file-upload-area:hover { border-color:#3b82f6; background:rgba(59,130,246,0.05); }
+    .modal-content .file-upload-area input { display: none; }
+    .color-row { display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
+    .color-row input[type="color"] { width:40px; height:40px; border:2px solid rgba(255,255,255,0.1); border-radius:10px; padding:2px; cursor:pointer; background:transparent; }
+    .color-row input[type="color"]::-webkit-color-swatch-wrapper { padding:0; }
+    .color-row input[type="color"]::-webkit-color-swatch { border:none; border-radius:6px; }
+  </style>
+</head>
+<body>
+
+<div id="offlineBanner" class="hidden">📴 Офлайн-режим — только локальные треки</div>
+
+<div class="container">
+  <div class="player-header">
+    <h1>🎵 LoL Player</h1>
+    <div class="player-header-actions">
+      <button id="authBtn" onclick="openAuthModal()">🔐 Войти</button>
+      <button onclick="openIconModal()">🖼️</button>
+      <button onclick="addTrack()">➕</button>
+    </div>
+  </div>
+
+  <div id="trackListContainer">
+    <div class="empty-state">
+      <div class="spinner"></div>
+      <p style="margin-top:12px;">Загрузка музыки...</p>
+    </div>
+  </div>
+
+  <div class="player-widget" id="playerWidget">
+    <div class="player-top">
+      <div class="player-cover" id="playerCover"><span style="color:rgba(255,255,255,0.3);font-size:12px;">🎵</span></div>
+      <div class="player-info">
+        <div class="title" id="playerTitle">Нет трека</div>
+        <div class="artist" id="playerArtist">—</div>
+      </div>
+    </div>
+    <div class="player-controls">
+      <button onclick="prevTrack()">⏮</button>
+      <button class="play-btn" id="playBtn" onclick="togglePlay()">▶</button>
+      <button onclick="nextTrack()">⏭</button>
+    </div>
+    <input type="range" class="player-slider" id="timeSlider" min="0" max="0" value="0" oninput="seekTrack(this.value)">
+    <div class="time-info"><span id="currentTime">0:00</span><span id="totalTime">0:00</span></div>
+    <div class="speed-control">
+      <label>Скорость</label>
+      <input type="range" id="speedSlider" min="0.5" max="2.0" step="0.1" value="1.0" oninput="changeSpeed(this.value)">
+      <span class="speed-value" id="speedValue">1.0x</span>
+    </div>
+  </div>
+
+  <!-- МОДАЛКА ВХОДА -->
+  <div class="modal" id="authModal">
+    <div class="modal-content">
+      <h2>🔐 Вход в LoL Player</h2>
+      <p style="color:rgba(234,241,255,0.5);font-size:14px;margin-bottom:16px;">Войдите, чтобы синхронизировать библиотеку с мессенджером</p>
+      <div class="lol-auth-tabs" id="lolAuthTabs">
+        <button class="active" data-tab="code">🔑 По коду</button>
+        <button data-tab="login">👤 Логин/Пароль</button>
+      </div>
+      <div id="lolCodeTab">
+        <div class="field"><label>Код из LoL Auth</label><input type="text" id="lolCodeInput" placeholder="A1B2C3D4" maxlength="8" autocomplete="off" style="text-transform:uppercase;font-family:'Courier New',monospace;letter-spacing:4px;font-size:20px;text-align:center;"></div>
+        <button class="btn btn-block" id="lolCodeBtn">🚀 Войти по коду</button>
+        <div class="msg" id="lolCodeMsg"></div>
+        <div class="text-center text-sm text-muted mt-8">💡 Получите код в <strong style="color:#60a5fa;">LoL Auth</strong></div>
+      </div>
+      <div id="lolLoginTab" class="hidden">
+        <div class="field"><label>Логин</label><input id="lolLoginInput" placeholder="например: l0l_user"></div>
+        <div class="field"><label>Пароль</label><input id="lolPassInput" type="password" placeholder="••••••••"></div>
+        <button class="btn btn-block" id="lolLoginBtn">Войти</button>
+        <div class="msg" id="lolLoginMsg"></div>
+        <div class="text-center text-sm text-muted mt-8">Нет аккаунта? Зарегистрируйтесь в <strong style="color:#60a5fa;">LoL Messenger</strong></div>
+      </div>
+      <div id="lolAuthSuccess" class="hidden">
+        <div class="text-center" style="padding:16px 0;">
+          <div style="font-size:48px;margin-bottom:12px;">✅</div>
+          <h3 id="lolWelcomeText" style="font-size:20px;background:linear-gradient(135deg, #60a5fa, #a78bfa);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">Добро пожаловать!</h3>
+          <p style="color:rgba(234,241,255,0.5);">Вы успешно вошли в LoL Player</p>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button class="cancel-btn" onclick="closeAuthModal()">Закрыть</button>
+        <button class="save-btn" id="logoutBtn" style="display:none;background:#ef4444;" onclick="logout()">🚪 Выйти</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- МОДАЛКА РЕДАКТИРОВАНИЯ -->
+  <div class="modal" id="editTrackModal">
+    <div class="modal-content" style="max-width:400px;">
+      <h2>✏️ Редактировать трек</h2>
+      <input type="hidden" id="editTrackId">
+      <div style="text-align:center;margin:12px 0;">
+        <div id="editTrackCover" style="width:100px;height:100px;border-radius:16px;margin:0 auto;overflow:hidden;background:linear-gradient(135deg, #3b82f6, #8b5cf6);display:flex;align-items:center;justify-content:center;font-size:40px;cursor:pointer;border:2px dashed rgba(255,255,255,0.15);">🎵</div>
+        <input type="file" id="editTrackCoverInput" accept="image/*" style="display:none;" onchange="loadEditCover(event)">
+        <button class="btn btn-sm mt-8" onclick="document.getElementById('editTrackCoverInput').click()">Изменить обложку</button>
+      </div>
+      <div class="field"><label>Название</label><input type="text" id="editTrackTitle" class="input" placeholder="Введите название"></div>
+      <div class="field"><label>Исполнитель</label><input type="text" id="editTrackArtist" class="input" placeholder="Введите исполнителя"></div>
+      <div class="modal-actions">
+        <button class="cancel-btn" onclick="closeEditTrackModal()">❌ Отмена</button>
+        <button class="save-btn" onclick="saveTrackEdit()">✅ Сохранить</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- МОДАЛКА ВЫБОРА СОХРАНЕНИЯ -->
+  <div class="modal choice-modal" id="choiceModal">
+    <div class="modal-content">
+      <h2>💾 Куда сохранить?</h2>
+      <p style="color:rgba(234,241,255,0.5);font-size:14px;margin-bottom:8px;">Выберите, где будет храниться этот трек</p>
+      <div class="choice-grid">
+        <button onclick="confirmSaveChoice('cloud')"><span class="icon">☁️</span><div><div>В облачную библиотеку</div><div class="desc">Доступно на всех устройствах через LoL ID</div></div></button>
+        <button onclick="confirmSaveChoice('local')"><span class="icon">📱</span><div><div>Только на этом устройстве</div><div class="desc">Локальное хранение, доступно офлайн</div></div></button>
+        <button onclick="confirmSaveChoice('both')"><span class="icon">🔄</span><div><div>И в облако, и локально</div><div class="desc">Максимальная надёжность</div></div></button>
+      </div>
+      <div class="modal-actions"><button class="cancel-btn" onclick="cancelChoice()">❌ Отмена</button></div>
+    </div>
+  </div>
+
+  <!-- МОДАЛКА ИКОНКИ -->
+  <div class="modal" id="iconModal">
+    <div class="modal-content">
+      <h2>🖼️ Иконка LoL Player</h2>
+      <label>Выберите иконку</label>
+      <div class="icon-preview-area">
+        <div class="icon-preview-box" id="iconPreviewBox"><img id="iconPreviewImg" src="" style="display:none;"><span class="placeholder" id="iconPlaceholder">🎵</span></div>
+        <div class="icon-emoji-options">
+          <button onclick="selectEmoji('🎵')" class="active">🎵</button>
+          <button onclick="selectEmoji('🎶')">🎶</button>
+          <button onclick="selectEmoji('🎧')">🎧</button>
+          <button onclick="selectEmoji('🎼')">🎼</button>
+          <button onclick="selectEmoji('♪')">♪</button>
+          <button onclick="selectEmoji('♫')">♫</button>
+          <button onclick="selectEmoji('🎸')">🎸</button>
+          <button onclick="selectEmoji('🎹')">🎹</button>
+        </div>
+      </div>
+      <label>Или загрузите свою иконку (PNG с прозрачностью)</label>
+      <div class="file-upload-area" onclick="document.getElementById('iconFileInput').click()">
+        <div>📁 Нажмите чтобы загрузить PNG</div>
+        <div style="font-size:12px;color:rgba(255,255,255,0.3);margin-top:4px;">Рекомендуется 512×512px</div>
+        <input type="file" id="iconFileInput" accept="image/png,image/jpeg" onchange="loadCustomIcon(event)">
+      </div>
+      <div class="modal-actions">
+        <button class="cancel-btn" onclick="closeIconModal()">Отмена</button>
+        <button class="save-btn" onclick="saveIcon()">💾 Сохранить иконку</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore-compat.js"></script>
+<script>
+// ========================================================================
+// КОНФИГИ
+// ========================================================================
+const firebaseConfig = {
+  apiKey: "AIzaSyCl9xOzUawqggpwyZQupGYm67RiWT42b7A",
+  authDomain: "lol-messenger-76286.firebaseapp.com",
+  projectId: "lol-messenger-76286",
+  storageBucket: "lol-messenger-76286.firebasestorage.app",
+  messagingSenderId: "573143866457",
+  appId: "1:573143866457:web:fb7ed67ea66848e6da2548"
+};
+const CLOUDINARY = { cloudName: 'kwfqxp7l', uploadPreset: 'lol_music' };
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+// ========================================================================
+// ВСПОМОГАТЕЛЬНЫЕ
+// ========================================================================
+const $ = id => document.getElementById(id);
+const randId = () => Date.now() + '_' + Math.random().toString(36).substr(2,6);
+const escapeHtml = s => (s ?? '').toString().replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;');
+
+function showToast(msg, type='info') {
+  const existing = document.querySelector('.toast');
+  if (existing) existing.remove();
+  const toast = document.createElement('div');
+  toast.className = 'toast ' + type;
+  toast.textContent = msg;
+  document.body.appendChild(toast);
+  setTimeout(() => toast.remove(), 3500);
+}
+function showMsg(el, text, type='error') {
+  el.textContent = text;
+  el.className = 'msg show ' + type;
+  setTimeout(() => { el.className = 'msg'; }, 5000);
+}
+function clearMsg(el) { el.className = 'msg'; el.textContent = ''; }
+async function sha256Hex(text) {
+  const enc = new TextEncoder();
+  const data = enc.encode(text);
+  const hash = await crypto.subtle.digest('SHA-256', data);
+  return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2,'0')).join('');
+}
+async function uploadToCloudinary(file) {
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('upload_preset', CLOUDINARY.uploadPreset);
+  const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY.cloudName}/upload`, { method: 'POST', body: formData });
+  if (!res.ok) throw new Error('Cloudinary upload failed');
+  const data = await res.json();
+  return data.secure_url;
+}
+function formatTime(seconds) {
+  if (!seconds || isNaN(seconds) || !isFinite(seconds)) return '0:00';
+  const m = Math.floor(seconds / 60);
+  const s = Math.floor(seconds % 60);
+  return m + ':' + (s < 10 ? '0' : '') + s;
+}
+
+// ========================================================================
+// INDEXEDDB
+// ========================================================================
+let localDB = null;
+function openLocalDB() {
+  return new Promise((resolve, reject) => {
+    if (localDB) { resolve(localDB); return; }
+    const request = indexedDB.open('LoLPlayerDB', 1);
+    request.onupgradeneeded = (e) => {
+      const db = e.target.result;
+      if (!db.objectStoreNames.contains('tracks')) {
+        db.createObjectStore('tracks', { keyPath: 'id' });
+      }
+    };
+    request.onsuccess = (e) => { localDB = e.target.result; resolve(localDB); };
+    request.onerror = (e) => { reject(e.target.error); };
+  });
+}
+async function saveTrackLocal(track) {
+  const db = await openLocalDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('tracks', 'readwrite');
+    const store = tx.objectStore('tracks');
+    const request = store.put(track);
+    request.onsuccess = resolve;
+    request.onerror = () => reject(request.error);
+  });
+}
+async function getAllTracksLocal() {
+  const db = await openLocalDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('tracks', 'readonly');
+    const store = tx.objectStore('tracks');
+    const request = store.getAll();
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+}
+async function deleteTrackLocal(id) {
+  const db = await openLocalDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('tracks', 'readwrite');
+    const store = tx.objectStore('tracks');
+    const request = store.delete(id);
+    request.onsuccess = resolve;
+    request.onerror = () => reject(request.error);
+  });
+}
+
+// ========================================================================
+// LOL AUTH
+// ========================================================================
+let authUser = null;
+async function findUserByLogin(login) {
+  const snap = await db.collection('users').where('login', '==', login).limit(1).get();
+  if (snap.empty) return null;
+  const d = snap.docs[0];
+  return { uid: d.id, data: d.data() };
+}
+async function loadUser(uid) {
+  const snap = await db.collection('users').doc(uid).get();
+  if (!snap.exists) throw new Error('Аккаунт не найден.');
+  return { uid: snap.id, ...snap.data() };
+}
+async function loginWithPassword(login, pass) {
+  const found = await findUserByLogin(login);
+  if (!found) throw new Error('Аккаунт не найден.');
+  const { uid, data } = found;
+  const calc = await sha256Hex(`${login}:${pass}:${data.salt}`);
+  if (calc !== data.passwordHash) throw new Error('Неверный пароль.');
+  return await loadUser(uid);
+}
+async function loginWithCode(code) {
+  const snap = await db.collection('auth_codes').where('code', '==', code.toUpperCase()).get();
+  if (snap.empty) throw new Error('Неверный код или код истёк');
+  const doc = snap.docs[0];
+  const data = doc.data();
+  if (data.expiresAt < Date.now()) throw new Error('Код истёк! Получите новый в LOL Auth');
+  const user = await loadUser(data.userId);
+  await doc.ref.delete();
+  return user;
+}
+function onLoginSuccess(user) {
+  authUser = user;
+  localStorage.setItem('lol_player_session', JSON.stringify({ uid: user.uid, login: user.login, nick: user.nick, timestamp: Date.now() }));
+  const authBtn = $('authBtn');
+  authBtn.textContent = '👤 ' + (user.nick || user.login);
+  authBtn.className = 'auth-status-btn logged-in';
+  closeAuthModal();
+  showToast('✅ Добро пожаловать, ' + (user.nick || user.login) + '!', 'success');
+  loadPlayerTracks();
+}
+function logout() {
+  if (authUser) {
+    authUser = null;
+    localStorage.removeItem('lol_player_session');
+    const authBtn = $('authBtn');
+    authBtn.textContent = '🔐 Войти';
+    authBtn.className = 'auth-status-btn';
+    showToast('👋 Вы вышли', 'info');
+    loadPlayerTracks();
+  }
+}
+async function checkSession() {
+  try {
+    const saved = localStorage.getItem('lol_player_session');
+    if (saved) {
+      const data = JSON.parse(saved);
+      if (data.uid) {
+        const user = await loadUser(data.uid);
+        if (user) {
+          authUser = user;
+          const authBtn = $('authBtn');
+          authBtn.textContent = '👤 ' + (user.nick || user.login);
+          authBtn.className = 'auth-status-btn logged-in';
+          return true;
+        }
+      }
+    }
+  } catch (e) {}
+  return false;
+}
+
+// ========================================================================
+// AUTH UI
+// ========================================================================
+function openAuthModal() {
+  $('authModal').classList.add('active');
+  if (authUser) {
+    $('lolCodeTab').classList.add('hidden');
+    $('lolLoginTab').classList.add('hidden');
+    $('lolAuthSuccess').classList.remove('hidden');
+    $('lolWelcomeText').textContent = 'Привет, ' + (authUser.nick || authUser.login) + '!';
+    $('logoutBtn').style.display = 'block';
+  } else {
+    $('lolCodeTab').classList.remove('hidden');
+    $('lolLoginTab').classList.add('hidden');
+    $('lolAuthSuccess').classList.add('hidden');
+    $('logoutBtn').style.display = 'none';
+    document.querySelectorAll('.lol-auth-tabs button').forEach(b => b.classList.remove('active'));
+    document.querySelector('.lol-auth-tabs button[data-tab="code"]').classList.add('active');
+  }
+}
+function closeAuthModal() {
+  $('authModal').classList.remove('active');
+  clearMsg($('lolCodeMsg'));
+  clearMsg($('lolLoginMsg'));
+}
+$('authModal').addEventListener('click', function(e) { if (e.target === this) closeAuthModal(); });
+document.querySelectorAll('.lol-auth-tabs button').forEach(btn => {
+  btn.addEventListener('click', function() {
+    if (authUser) return;
+    document.querySelectorAll('.lol-auth-tabs button').forEach(b => b.classList.remove('active'));
+    this.classList.add('active');
+    const tab = this.dataset.tab;
+    if (tab === 'code') { $('lolCodeTab').classList.remove('hidden'); $('lolLoginTab').classList.add('hidden'); }
+    else { $('lolCodeTab').classList.add('hidden'); $('lolLoginTab').classList.remove('hidden'); }
+    clearMsg($('lolCodeMsg')); clearMsg($('lolLoginMsg'));
+  });
+});
+$('lolCodeBtn').addEventListener('click', async () => {
+  const code = $('lolCodeInput').value.trim().toUpperCase();
+  if (!code || code.length < 8) { showMsg($('lolCodeMsg'), 'Введите 8-значный код', 'error'); return; }
+  $('lolCodeBtn').disabled = true;
+  $('lolCodeBtn').innerHTML = '<span class="spinner"></span> Проверка...';
+  clearMsg($('lolCodeMsg'));
+  try {
+    const user = await loginWithCode(code);
+    onLoginSuccess(user);
+    showMsg($('lolCodeMsg'), '✅ Вход выполнен!', 'success');
+  } catch (e) {
+    showMsg($('lolCodeMsg'), e.message, 'error');
+  } finally {
+    $('lolCodeBtn').disabled = false;
+    $('lolCodeBtn').innerHTML = '🚀 Войти по коду';
+  }
+});
+$('lolCodeInput').addEventListener('input', function() { if (this.value.length >= 8) $('lolCodeBtn').click(); });
+$('lolLoginBtn').addEventListener('click', async () => {
+  const login = $('lolLoginInput').value.trim();
+  const pass = $('lolPassInput').value;
+  if (!login || !pass) { showMsg($('lolLoginMsg'), 'Заполните логин и пароль', 'error'); return; }
+  $('lolLoginBtn').disabled = true;
+  $('lolLoginBtn').innerHTML = '<span class="spinner"></span> Вход...';
+  clearMsg($('lolLoginMsg'));
+  try {
+    const user = await loginWithPassword(login, pass);
+    onLoginSuccess(user);
+    showMsg($('lolLoginMsg'), '✅ Вход выполнен!', 'success');
+  } catch (e) {
+    showMsg($('lolLoginMsg'), e.message, 'error');
+  } finally {
+    $('lolLoginBtn').disabled = false;
+    $('lolLoginBtn').innerHTML = 'Войти';
+  }
+});
+$('lolPassInput').addEventListener('keydown', e => { if (e.key === 'Enter') $('lolLoginBtn').click(); });
+
+// ========================================================================
+// ВЫБОР СОХРАНЕНИЯ
+// ========================================================================
+let pendingFile = null;
+let pendingTrackData = null;
+
+function cancelChoice() {
+  $('choiceModal').classList.remove('active');
+  pendingFile = null;
+  pendingTrackData = null;
+}
+
+async function confirmSaveChoice(choice) {
+  if (!pendingFile || !pendingTrackData) {
+    showToast('❌ Данные не найдены, попробуйте загрузить заново', 'error');
+    $('choiceModal').classList.remove('active');
+    pendingFile = null;
+    pendingTrackData = null;
+    return;
+  }
+
+  const file = pendingFile;
+  const trackData = { ...pendingTrackData };
+
+  $('choiceModal').classList.remove('active');
+
+  try {
+    showToast('⏳ Загрузка...', 'info');
+    let audioUrl = null;
+
+    try {
+      audioUrl = await uploadToCloudinary(file);
+    } catch (e) {
+      console.warn('Cloudinary upload failed:', e);
+      showToast('⚠️ Облачная загрузка не удалась, но локально сохраним', 'error');
+    }
+
+    const track = {
+      id: randId(),
+      title: trackData.title || file.name.replace(/\.[^/.]+$/, ''),
+      artist: trackData.artist || 'Неизвестный',
+      cover: trackData.cover || null,
+      audioUrl: audioUrl,
+      addedAt: Date.now(),
+      source: choice === 'cloud' ? 'cloud' : choice === 'local' ? 'local' : 'both'
+    };
+
+    // Локально сохраняем ВСЕГДА (чтобы работало офлайн), даже если выбран только cloud
+    await saveTrackLocal(track);
+    showToast('✅ Сохранено локально', 'success');
+
+    if (authUser && navigator.onLine && (choice === 'cloud' || choice === 'both')) {
+      await db.collection('user_tracks').add({
+        userId: authUser.uid,
+        originalTrackId: track.id,
+        title: track.title,
+        artist: track.artist,
+        cover: track.cover,
+        audioUrl: track.audioUrl,
+        addedAt: firebase.firestore.FieldValue.serverTimestamp(),
+        isCustomized: false,
+        source: 'cloud'
+      });
+      showToast('☁️ Сохранено в облако', 'success');
+    }
+
+    pendingFile = null;
+    pendingTrackData = null;
+    loadPlayerTracks();
+  } catch (e) {
+    console.error('Save error:', e);
+    showToast('❌ Ошибка: ' + e.message, 'error');
+  }
+}
+
+// ========================================================================
+// ПЛЕЕР
+// ========================================================================
+let playerTracks = [];
+let currentTrackId = null;
+let audio = new Audio();
+let isPlaying = false;
+let editTrackId = null;
+let tempCoverData = null;
+
+async function loadPlayerTracks() {
+  const container = $('trackListContainer');
+  container.innerHTML = '<div class="empty-state"><div class="spinner"></div><p style="margin-top:12px;">Загрузка...</p></div>';
+
+  // 1) Всегда грузим локальные (работают офлайн)
+  let allTracks = [];
+  try {
+    allTracks = (await getAllTracksLocal()) || [];
+  } catch (e) {
+    console.warn('IndexedDB error:', e);
+  }
+
+  // 2) Облако — только если авторизован и онлайн
+  if (authUser && navigator.onLine) {
+    try {
+      const snap = await db.collection('user_tracks')
+        .where('userId', '==', authUser.uid)
+        .orderBy('addedAt', 'desc')
+        .get();
+
+      snap.forEach(doc => {
+        const data = doc.data();
+        if (!allTracks.some(t => t.id === data.originalTrackId || t.cloudDocId === doc.id)) {
+          allTracks.push({
+            id: data.originalTrackId || doc.id,
+            title: data.title,
+            artist: data.artist,
+            cover: data.cover,
+            audioUrl: data.audioUrl,
+            addedAt: data.addedAt?.toMillis?.() || Date.now(),
+            source: 'cloud',
+            cloudDocId: doc.id
+          });
+        }
+      });
+    } catch (e) {
+      console.warn('Cloud load failed (offline?):', e);
+      if (allTracks.length) showToast('☁️ Облако недоступно, показываем локальные треки', 'info');
+    }
+  }
+
+  allTracks.sort((a, b) => (b.addedAt || 0) - (a.addedAt || 0));
+  playerTracks = allTracks;
+
+  if (playerTracks.length === 0) {
+    container.innerHTML = `<div class="empty-state"><div class="icon">🎵</div>
+      <p>${navigator.onLine ? 'Нет треков в библиотеке' : 'Нет локальных треков (офлайн)'}</p>
+      <p style="font-size:12px;margin-top:8px;">Нажмите + чтобы добавить</p></div>`;
+    updatePlayerUI();
+    return;
+  }
+
+  container.innerHTML = `<div class="track-list">${playerTracks.map(track => {
+    const isActive = track.id === currentTrackId;
+    const coverHtml = track.cover ? `<img src="${track.cover}" onerror="this.style.display='none'">` : `<span class="no-cover">🎵</span>`;
+    const badge = track.source === 'cloud' ? '<span class="track-badge cloud">☁️</span>' :
+                  track.source === 'local' ? '<span class="track-badge local">📱</span>' :
+                  '<span class="track-badge">🔄</span>';
+    return `
+      <div class="track-item ${isActive ? 'active' : ''}" data-track-id="${track.id}" onclick="playTrack('${track.id}')">
+        <div class="track-cover">${coverHtml}</div>
+        <div class="track-info">
+          <div class="track-title">${escapeHtml(track.title)} ${badge}</div>
+          <div class="track-artist">${escapeHtml(track.artist)}</div>
+        </div>
+        <div class="track-actions">
+          <button class="edit-btn" onclick="event.stopPropagation(); openEditTrack('${track.id}')">✏️</button>
+          <button class="delete-btn" onclick="event.stopPropagation(); deleteTrack('${track.id}')">🗑️</button>
+        </div>
+      </div>
+    `;
+  }).join('')}</div>`;
+
+  updatePlayerUI();
+}
+
+function markActiveInList(id) {
+  document.querySelectorAll('.track-item').forEach(el => {
+    el.classList.toggle('active', el.dataset.trackId === id);
+  });
+}
+
+// ===== ЗАГРУЗКА ФАЙЛА =====
+async function addTrack() {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = 'audio/*,.mp3,.wav,.ogg,.aac,.flac,.m4a,.mp4,.webm,.wma,.opus';
+  input.style.display = 'none';
+  document.body.appendChild(input);
+
+  input.onchange = async function(e) {
+    const file = e.target.files && e.target.files[0];
+    document.body.removeChild(input);
+    if (!file) return;
+    if (!file.type.startsWith('audio/')) {
+      showToast('⚠️ Выберите аудиофайл!', 'error');
+      return;
+    }
+
+    const trackData = {
+      title: file.name.replace(/\.[^/.]+$/, ''),
+      artist: 'Неизвестный',
+      cover: null
+    };
+
+    if (authUser) {
+      pendingFile = file;
+      pendingTrackData = trackData;
+      $('choiceModal').classList.add('active');
+      return;
+    }
+
+    // Без авторизации — сразу локально, но только после успешной загрузки на Cloudinary
+    try {
+      showToast('⏳ Загрузка...', 'info');
+      const url = await uploadToCloudinary(file);
+      const track = {
+        id: randId(),
+        title: trackData.title,
+        artist: trackData.artist,
+        cover: null,
+        audioUrl: url,
+        addedAt: Date.now(),
+        source: 'local'
+      };
+      await saveTrackLocal(track);
+      showToast('✅ Сохранено локально', 'success');
+      loadPlayerTracks();
+    } catch (e) {
+      showToast('❌ Не удалось загрузить аудио: ' + e.message, 'error');
+    }
+  };
+  input.click();
+}
+
+// ===== ВОСПРОИЗВЕДЕНИЕ =====
+async function playTrack(id, autoPlay = true) {
+  const track = playerTracks.find(t => t.id === id);
+  if (!track) { showToast('❌ Трек не найден', 'error'); return; }
+  if (!track.audioUrl) { showToast('❌ Аудио не загружено', 'error'); return; }
+
+  currentTrackId = id;
+
+  // Переиспользуем существующий Audio — критично для фонового автоплея
+  if (!audio) audio = new Audio();
+  audio.pause();
+  audio.src = track.audioUrl;
+  audio.load();
+  audio.playbackRate = parseFloat($('speedSlider').value) || 1;
+
+  audio.onloadedmetadata = () => {
+    $('timeSlider').max = audio.duration;
+    $('totalTime').textContent = formatTime(audio.duration);
+  };
+  audio.ontimeupdate = updateTime;
+  audio.onended = () => nextTrack(true);
+  audio.onerror = () => {
+    showToast('❌ Ошибка воспроизведения', 'error');
+    isPlaying = false;
+    updatePlayerUI();
+    setTimeout(() => nextTrack(true), 1000);
+  };
+
+  try {
+    if (autoPlay) {
+      await audio.play();
+      isPlaying = true;
+    }
+  } catch (e) {
+    console.warn('Play blocked:', e);
+    isPlaying = false;
+  }
+
+  updatePlayerUI();
+  updateMediaSession(track);
+  markActiveInList(id);
+}
+
+function togglePlay() {
+  if (!currentTrackId) {
+    if (playerTracks.length) playTrack(playerTracks[0].id);
+    else showToast('🎵 Нет треков', 'info');
+    return;
+  }
+  if (isPlaying) {
+    audio.pause();
+    isPlaying = false;
+    updatePlayerUI();
+    updateMediaSession(playerTracks.find(t => t.id === currentTrackId));
+  } else {
+    audio.play().then(() => {
+      isPlaying = true;
+      updatePlayerUI();
+      updateMediaSession(playerTracks.find(t => t.id === currentTrackId));
+    }).catch(() => {});
+  }
+}
+
+function nextTrack(auto = false) {
+  if (!playerTracks.length) return;
+  const idx = playerTracks.findIndex(t => t.id === currentTrackId);
+  const nextId = playerTracks[(idx + 1) % playerTracks.length].id;
+  playTrack(nextId, true);
+}
+
+function prevTrack() {
+  if (!playerTracks.length) return;
+  const idx = playerTracks.findIndex(t => t.id === currentTrackId);
+  const prevId = playerTracks[(idx - 1 + playerTracks.length) % playerTracks.length].id;
+  playTrack(prevId, true);
+}
+
+function seekTrack(val) { audio.currentTime = val; $('currentTime').textContent = formatTime(val); }
+
+function updateTime() {
+  $('timeSlider').value = audio.currentTime;
+  $('currentTime').textContent = formatTime(audio.currentTime);
+  if (audio.duration) $('totalTime').textContent = formatTime(audio.duration);
+
+  if ('mediaSession' in navigator && audio.duration && isFinite(audio.duration)) {
+    try {
+      navigator.mediaSession.setPositionState({
+        duration: audio.duration,
+        playbackRate: audio.playbackRate || 1,
+        position: Math.min(audio.currentTime, audio.duration)
+      });
+    } catch (e) {}
+  }
+}
+
+function changeSpeed(val) {
+  audio.playbackRate = parseFloat(val);
+  $('speedValue').textContent = val + 'x';
+}
+
+function updatePlayerUI() {
+  const track = playerTracks.find(t => t.id === currentTrackId);
+  $('playerTitle').textContent = track?.title || 'Нет трека';
+  $('playerArtist').textContent = track?.artist || '—';
+  $('playerCover').innerHTML = track?.cover ? `<img src="${track.cover}">` : `<span style="color:rgba(255,255,255,0.3);font-size:20px;">🎵</span>`;
+  $('playBtn').textContent = isPlaying ? '⏸' : '▶';
+}
+
+// ===== MEDIA SESSION =====
+let mediaSessionReady = false;
+function setupMediaSession() {
+  if (!('mediaSession' in navigator) || mediaSessionReady) return;
+  mediaSessionReady = true;
+  try {
+    navigator.mediaSession.setActionHandler('play', () => {
+      audio.play().then(() => {
+        isPlaying = true;
+        updatePlayerUI();
+        updateMediaSession(playerTracks.find(t => t.id === currentTrackId));
+      }).catch(() => {});
+    });
+    navigator.mediaSession.setActionHandler('pause', () => {
+      audio.pause();
+      isPlaying = false;
+      updatePlayerUI();
+      updateMediaSession(playerTracks.find(t => t.id === currentTrackId));
+    });
+    navigator.mediaSession.setActionHandler('stop', () => {
+      audio.pause();
+      audio.currentTime = 0;
+      isPlaying = false;
+      updatePlayerUI();
+    });
+    navigator.mediaSession.setActionHandler('previoustrack', prevTrack);
+    navigator.mediaSession.setActionHandler('nexttrack', nextTrack);
+    navigator.mediaSession.setActionHandler('seekbackward', (details) => {
+      const step = details.seekOffset || 10;
+      audio.currentTime = Math.max(0, audio.currentTime - step);
+    });
+    navigator.mediaSession.setActionHandler('seekforward', (details) => {
+      const step = details.seekOffset || 10;
+      audio.currentTime = Math.min(audio.duration || 0, audio.currentTime + step);
+    });
+    navigator.mediaSession.setActionHandler('seekto', (details) => {
+      if (details.fastSeek && 'fastSeek' in audio) audio.fastSeek(details.seekTime);
+      else if (details.seekTime != null) audio.currentTime = details.seekTime;
+    });
+  } catch (e) { console.warn('MediaSession handlers error:', e); }
+}
+
+function updateMediaSession(track) {
+  if (!track || !('mediaSession' in navigator)) return;
+  try {
+    navigator.mediaSession.metadata = new MediaMetadata({
+      title: track.title || 'Без названия',
+      artist: track.artist || 'Неизвестный',
+      album: 'LoL Player',
+      artwork: track.cover
+        ? [
+            { src: track.cover, sizes: '96x96', type: 'image/jpeg' },
+            { src: track.cover, sizes: '256x256', type: 'image/jpeg' },
+            { src: track.cover, sizes: '512x512', type: 'image/jpeg' }
+          ]
+        : []
+    });
+    navigator.mediaSession.playbackState = isPlaying ? 'playing' : 'paused';
+  } catch (e) {}
+}
+
+// ===== УДАЛЕНИЕ =====
+async function deleteTrack(id) {
+  if (!confirm('Удалить трек?')) return;
+  try {
+    await deleteTrackLocal(id);
+    if (authUser && navigator.onLine) {
+      try {
+        const snap = await db.collection('user_tracks')
+          .where('userId', '==', authUser.uid)
+          .where('originalTrackId', '==', id).limit(1).get();
+        snap.forEach(doc => doc.ref.delete());
+      } catch (e) { console.warn('Cloud delete fail:', e); }
+    }
+    if (currentTrackId === id) { audio.pause(); isPlaying = false; currentTrackId = null; }
+    showToast('🗑️ Трек удален', 'success');
+    loadPlayerTracks();
+    updatePlayerUI();
+  } catch (e) { showToast('❌ Ошибка удаления', 'error'); }
+}
+
+// ========================================================================
+// РЕДАКТИРОВАНИЕ
+// ========================================================================
+function openEditTrack(id) {
+  editTrackId = id;
+  const track = playerTracks.find(t => t.id === id);
+  if (!track) return;
+  $('editTrackTitle').value = track.title;
+  $('editTrackArtist').value = track.artist;
+  tempCoverData = track.cover;
+  const coverEl = $('editTrackCover');
+  coverEl.innerHTML = track.cover ? `<img src="${track.cover}" style="width:100%;height:100%;object-fit:cover;">` : '🎵';
+  $('editTrackModal').classList.add('active');
+}
+function closeEditTrackModal() {
+  $('editTrackModal').classList.remove('active');
+  editTrackId = null;
+  tempCoverData = null;
+  $('editTrackCoverInput').value = '';
+}
+function loadEditCover(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(ev) {
+    tempCoverData = ev.target.result;
+    $('editTrackCover').innerHTML = `<img src="${ev.target.result}" style="width:100%;height:100%;object-fit:cover;">`;
+  };
+  reader.readAsDataURL(file);
+}
+async function saveTrackEdit() {
+  const id = editTrackId;
+  const title = $('editTrackTitle').value.trim() || 'Без названия';
+  const artist = $('editTrackArtist').value.trim() || 'Неизвестный';
+  const updates = { title, artist };
+  if (tempCoverData && typeof tempCoverData === 'string' && tempCoverData.startsWith('data:image')) {
+    try {
+      const blob = await fetch(tempCoverData).then(r => r.blob());
+      updates.cover = await uploadToCloudinary(blob);
+    } catch (e) { showToast('❌ Ошибка обложки', 'error'); return; }
+  }
+  try {
+    const localTracks = await getAllTracksLocal();
+    const idx = localTracks.findIndex(t => t.id === id);
+    if (idx !== -1) {
+      localTracks[idx] = { ...localTracks[idx], ...updates };
+      await saveTrackLocal(localTracks[idx]);
+    }
+    if (authUser && navigator.onLine) {
+      try {
+        const snap = await db.collection('user_tracks')
+          .where('userId', '==', authUser.uid)
+          .where('originalTrackId', '==', id).limit(1).get();
+        snap.forEach(doc => doc.ref.update(updates));
+      } catch (e) { console.warn('Cloud edit fail:', e); }
+    }
+    showToast('✅ Сохранено!', 'success');
+    closeEditTrackModal();
+    loadPlayerTracks();
+  } catch (e) { showToast('❌ Ошибка сохранения', 'error'); }
+}
+$('editTrackModal').addEventListener('click', function(e) { if (e.target === this) closeEditTrackModal(); });
+
+// ========================================================================
+// ИКОНКА PWA
+// ========================================================================
+let selectedEmoji = '🎵';
+let customIconData = null;
+let currentIconType = 'emoji';
+
+function loadIconData() {
+  const saved = localStorage.getItem('lol_icon_data');
+  if (saved) {
+    try {
+      const data = JSON.parse(saved);
+      if (data.type === 'emoji') { selectedEmoji = data.emoji || '🎵'; currentIconType = 'emoji'; customIconData = null; }
+      else if (data.type === 'custom') { customIconData = data.imageData; currentIconType = 'custom'; }
+      updateIconPreview();
+    } catch (e) {}
+  }
+}
+function saveIconData() {
+  localStorage.setItem('lol_icon_data', JSON.stringify({ type: currentIconType, emoji: selectedEmoji, imageData: customIconData }));
+}
+function selectEmoji(emoji) {
+  selectedEmoji = emoji;
+  currentIconType = 'emoji';
+  customIconData = null;
+  document.querySelectorAll('.icon-emoji-options button').forEach(b => b.classList.toggle('active', b.textContent === emoji));
+  updateIconPreview();
+}
+function loadCustomIcon(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(ev) {
+    customIconData = ev.target.result;
+    currentIconType = 'custom';
+    document.querySelectorAll('.icon-emoji-options button').forEach(b => b.classList.remove('active'));
+    updateIconPreview();
+    showToast('✅ Иконка загружена', 'success');
+  };
+  reader.readAsDataURL(file);
+}
+function updateIconPreview() {
+  const img = $('iconPreviewImg');
+  const placeholder = $('iconPlaceholder');
+  if (currentIconType === 'custom' && customIconData) {
+    img.src = customIconData;
+    img.style.display = 'block';
+    placeholder.style.display = 'none';
+  } else {
+    img.style.display = 'none';
+    placeholder.style.display = 'block';
+    placeholder.textContent = selectedEmoji;
+  }
+}
+function generateIconImage(size) {
+  return new Promise((resolve) => {
+    const canvas = document.createElement('canvas');
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, size, size);
+    if (currentIconType === 'custom' && customIconData) {
+      const img = new Image();
+      img.onload = function() {
+        const s = size * 0.85;
+        const x = (size - s) / 2;
+        const y = (size - s) / 2;
+        ctx.drawImage(img, x, y, s, s);
+        resolve(canvas.toDataURL('image/png'));
+      };
+      img.onerror = function() { drawEmojiIcon(ctx, size); resolve(canvas.toDataURL('image/png')); };
+      img.src = customIconData;
+    } else {
+      drawEmojiIcon(ctx, size);
+      resolve(canvas.toDataURL('image/png'));
+    }
+  });
+}
+function drawEmojiIcon(ctx, size) {
+  const s = size * 0.7;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.font = `${s}px "Apple Color Emoji", "Segoe UI Emoji", sans-serif`;
+  ctx.shadowColor = 'rgba(0,0,0,0.2)';
+  ctx.shadowBlur = size * 0.05;
+  ctx.shadowOffsetY = size * 0.02;
+  ctx.fillStyle = '#ffffff';
+  ctx.fillText(selectedEmoji, size * 0.5, size * 0.52);
+}
+async function saveIcon() {
+  try {
+    const icon192 = await generateIconImage(192);
+    const icon512 = await generateIconImage(512);
+    saveIconData();
+    const link192 = document.createElement('a');
+    link192.download = 'icon-192.png';
+    link192.href = icon192;
+    link192.click();
+    setTimeout(() => {
+      const link512 = document.createElement('a');
+      link512.download = 'icon-512.png';
+      link512.href = icon512;
+      link512.click();
+    }, 200);
+    closeIconModal();
+    showToast('✅ Иконка сохранена!', 'success');
+  } catch (e) { showToast('❌ Ошибка: ' + e.message, 'error'); }
+}
+function openIconModal() { loadIconData(); $('iconModal').classList.add('active'); }
+function closeIconModal() { $('iconModal').classList.remove('active'); }
+$('iconModal').addEventListener('click', function(e) { if (e.target === this) closeIconModal(); });
+
+// ========================================================================
+// ОНЛАЙН / ОФЛАЙН
+// ========================================================================
+function updateOnlineStatus() {
+  const banner = $('offlineBanner');
+  if (navigator.onLine) banner.classList.add('hidden');
+  else banner.classList.remove('hidden');
+}
+window.addEventListener('online', () => {
+  updateOnlineStatus();
+  showToast('🌐 Интернет восстановлен', 'success');
+  if (authUser) loadPlayerTracks();
+});
+window.addEventListener('offline', () => {
+  updateOnlineStatus();
+  showToast('📴 Офлайн-режим: только локальные треки', 'info');
+});
+
+// ========================================================================
+// КЛАВИШИ
+// ========================================================================
+document.addEventListener('keydown', (e) => {
+  if (e.target.tagName === 'INPUT') return;
+  if (e.code === 'Space') { e.preventDefault(); togglePlay(); }
+  if (e.code === 'ArrowRight') { e.preventDefault(); audio.currentTime += 10; }
+  if (e.code === 'ArrowLeft') { e.preventDefault(); audio.currentTime -= 10; }
+});
+
+// ========================================================================
+// SERVICE WORKER
+// ========================================================================
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js', { scope: './' })
+      .then((reg) => {
+        console.log('✅ SW registered:', reg.scope);
+        reg.addEventListener('updatefound', () => {
+          const nw = reg.installing;
+          if (nw) {
+            nw.addEventListener('statechange', () => {
+              if (nw.state === 'installed' && navigator.serviceWorker.controller) {
+                showToast('🔄 Доступно обновление. Перезагрузите страницу.', 'info');
+              }
+            });
+          }
+        });
+      })
+      .catch((err) => console.warn('SW registration failed:', err));
+  });
+}
+
+// ========================================================================
+// ИНИЦИАЛИЗАЦИЯ
+// ========================================================================
+(async function init() {
+  await openLocalDB();
+  await checkSession();
+  await loadPlayerTracks();
+  loadIconData();
+  setupMediaSession();
+  updateOnlineStatus();
+  if (window.matchMedia('(display-mode: standalone)').matches) {
+    console.log('📱 LoL Player работает как PWA');
+  }
+})();
+</script>
+</body>
+</html>
