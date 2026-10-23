@@ -132,6 +132,7 @@
     .track-actions button:hover { background:rgba(255,255,255,0.08); color:#fff; }
     .track-actions .edit-btn:hover { color:#60a5fa; }
     .track-actions .delete-btn:hover { color:#f87171; }
+    .track-actions .download-btn:hover { color:#22c55e; }
     .track-actions button:active { transform:scale(0.85); }
     .track-badge { font-size: 10px; padding: 2px 8px; border-radius: 20px; background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.4); margin-left: 4px; }
     .track-badge.cloud { background: rgba(59,130,246,0.15); color: #60a5fa; }
@@ -322,9 +323,9 @@
       <h2>💾 Куда сохранить?</h2>
       <p style="color:rgba(234,241,255,0.5);font-size:14px;margin-bottom:8px;">Выберите, где будет храниться этот трек</p>
       <div class="choice-grid">
-        <button onclick="confirmSaveChoice('cloud')"><span class="icon">☁️</span><div><div>В облачную библиотеку</div><div class="desc">Доступно на всех устройствах + локально для офлайна</div></div></button>
-        <button onclick="confirmSaveChoice('local')"><span class="icon">📱</span><div><div>Только на этом устройстве</div><div class="desc">Локальное хранение, работает офлайн</div></div></button>
-        <button onclick="confirmSaveChoice('both')"><span class="icon">🔄</span><div><div>И в облако, и локально</div><div class="desc">Максимальная надёжность</div></div></button>
+        <button onclick="confirmSaveChoice('cloud')"><span class="icon">☁️</span><div><div>В облачную библиотеку</div><div class="desc">Доступно на всех устройствах (без офлайна, пока не скачаете)</div></div></button>
+        <button onclick="confirmSaveChoice('local')"><span class="icon">📱</span><div><div>Только на этом устройстве</div><div class="desc">Сразу в офлайн-хранилище, работает без сети</div></div></button>
+        <button onclick="confirmSaveChoice('both')"><span class="icon">🔄</span><div><div>И в облако, и локально</div><div class="desc">Максимальная надёжность: облако + офлайн</div></div></button>
       </div>
       <div class="modal-actions"><button class="cancel-btn" onclick="cancelChoice()">❌ Отмена</button></div>
     </div>
@@ -429,20 +430,6 @@ function formatSize(bytes) {
   return (bytes / 1024 / 1024).toFixed(1) + ' МБ';
 }
 
-// Проверка свободного места (для Blob в IndexedDB)
-async function checkStorageQuota(fileSize) {
-  if (!navigator.storage || !navigator.storage.estimate) return true;
-  try {
-    const { usage, quota } = await navigator.storage.estimate();
-    const free = quota - usage;
-    if (free < fileSize * 1.5) {
-      showToast(`⚠️ Мало места: свободно ${formatSize(free)}, нужно ${formatSize(fileSize * 1.5)}`, 'error');
-      return false;
-    }
-    return true;
-  } catch (e) { return true; }
-}
-
 // ========================================================================
 // INDEXEDDB (хранит и метаданные, и Blob аудио)
 // ========================================================================
@@ -490,6 +477,115 @@ async function deleteTrackLocal(id) {
     request.onsuccess = resolve;
     request.onerror = () => reject(request.error);
   });
+}
+
+// ========================================================================
+// ПРОВЕРКА МЕСТА + АВТОУДАЛЕНИЕ СТАРОГО ПРИ НЕХВАТКЕ
+// ========================================================================
+async function ensureStorageSpace(neededSize) {
+  if (!navigator.storage || !navigator.storage.estimate) return true;
+
+  let est = await navigator.storage.estimate();
+  let free = est.quota - est.usage;
+  const required = neededSize * 1.5;
+
+  if (free >= required) return true;
+
+  // Не хватает — удаляем самые старые скачанные Blob, пока не освободим
+  const all = await getAllTracksLocal();
+  const downloaded = all
+    .filter(t => t.audioBlob)
+    .sort((a, b) => (a.addedAt || 0) - (b.addedAt || 0)); // старые первыми
+
+  if (downloaded.length === 0) {
+    showToast(`❌ Мало места: свободно ${formatSize(free)}, нужно ${formatSize(required)}`, 'error');
+    return false;
+  }
+
+  let deletedCount = 0;
+  for (const oldTrack of downloaded) {
+    const withoutBlob = { ...oldTrack };
+    delete withoutBlob.audioBlob;
+    // «both» → после удаления Blob остаётся облачным
+    if (withoutBlob.source === 'both') withoutBlob.source = 'cloud';
+
+    await saveTrackLocal(withoutBlob);
+    deletedCount++;
+
+    est = await navigator.storage.estimate();
+    free = est.quota - est.usage;
+    if (free >= required) break;
+  }
+
+  if (deletedCount > 0) {
+    showToast(`🗑️ Освобождено место: удалён офлайн-кэш ${deletedCount} трек(ов)`, 'info');
+  }
+
+  if (free < required) {
+    showToast(`❌ Всё ещё мало места: свободно ${formatSize(free)}, нужно ${formatSize(required)}`, 'error');
+    return false;
+  }
+
+  return true;
+}
+
+// ========================================================================
+// СКАЧИВАНИЕ ТРЕКА В INDEXEDDB (кнопка ⬇️)
+// ========================================================================
+async function requestDownload(id) {
+  const track = playerTracks.find(t => t.id === id);
+  if (!track) { showToast('❌ Трек не найден', 'error'); return; }
+  if (track.audioBlob) { showToast('✅ Уже скачан', 'info'); return; }
+  if (!track.audioUrl) { showToast('❌ Нет ссылки на аудио', 'error'); return; }
+
+  let confirmed = false;
+
+  if (track.source === 'cloud') {
+    confirmed = confirm(
+      `Сохранить трек «${track.title}» в облаке и локально?\n\n` +
+      `• В облаке — доступен на всех устройствах\n` +
+      `• Локально — доступен офлайн`
+    );
+  } else {
+    confirmed = confirm(
+      `Скачать трек «${track.title}» для офлайн-доступа?\n\n` +
+      `Файл будет сохранён в хранилище браузера.`
+    );
+  }
+
+  if (!confirmed) return;
+  await downloadTrackToOffline(track);
+}
+
+async function downloadTrackToOffline(track) {
+  try {
+    showToast('⏳ Скачивание...', 'info');
+
+    const res = await fetch(track.audioUrl);
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const blob = await res.blob();
+
+    const hasSpace = await ensureStorageSpace(blob.size);
+    if (!hasSpace) return;
+
+    const updated = { ...track, audioBlob: blob, downloadedAt: Date.now() };
+    delete updated.cloudDocId;
+
+    await saveTrackLocal(updated);
+
+    const idx = playerTracks.findIndex(t => t.id === track.id);
+    if (idx !== -1) playerTracks[idx] = updated;
+
+    showToast(`✅ Скачано (${formatSize(blob.size)})`, 'success');
+    loadPlayerTracks();
+  } catch (e) {
+    console.error('Download failed:', e);
+    if (e.name === 'QuotaExceededError' || (e.message && e.message.includes('quota'))) {
+      showToast('❌ Хранилище переполнено. Удалите треки или очистите кэш.', 'error');
+    } else {
+      showToast('❌ Ошибка скачивания: ' + e.message, 'error');
+    }
+  }
 }
 
 // ========================================================================
@@ -666,9 +762,8 @@ async function confirmSaveChoice(choice) {
   const trackData = { ...pendingTrackData };
   $('choiceModal').classList.remove('active');
 
-  // Проверка места (нужно ~1.5x размера файла)
-  if (!(await checkStorageQuota(file.size))) {
-    showToast('❌ Недостаточно места в хранилище', 'error');
+  // Для local/both — Blob сразу в IndexedDB (нужно место). Для cloud — проверим перед записью.
+  if (choice !== 'cloud' && !(await ensureStorageSpace(file.size))) {
     pendingFile = null;
     pendingTrackData = null;
     return;
@@ -677,19 +772,19 @@ async function confirmSaveChoice(choice) {
   try {
     showToast('⏳ Сохранение...', 'info');
 
-    // 1) Всегда сохраняем Blob в IndexedDB — для офлайна
     const track = {
       id: randId(),
       title: trackData.title || file.name.replace(/\.[^/.]+$/, ''),
       artist: trackData.artist || 'Неизвестный',
       cover: trackData.cover || null,
-      audioBlob: file,             // ← сам файл в IndexedDB
+      // local/both → Blob сразу; cloud → только URL
+      audioBlob: choice === 'cloud' ? null : file,
       audioUrl: null,
       addedAt: Date.now(),
       source: choice === 'cloud' ? 'cloud' : choice === 'local' ? 'local' : 'both'
     };
 
-    // 2) Если нужно облако — загружаем на Cloudinary
+    // Для облака — грузим файл на Cloudinary (для local — не нужно)
     if (authUser && navigator.onLine && (choice === 'cloud' || choice === 'both')) {
       try {
         showToast('☁️ Загрузка в облако...', 'info');
@@ -697,15 +792,29 @@ async function confirmSaveChoice(choice) {
       } catch (e) {
         console.warn('Cloudinary upload failed:', e);
         showToast('⚠️ Облако недоступно, сохраняем только локально', 'error');
-        track.source = 'local';
+        // Откатываемся: раз облако упало — сохраняем как local
+        if (choice === 'cloud') {
+          track.audioBlob = file;
+          track.source = 'local';
+        } else {
+          track.source = 'local';
+        }
       }
     }
 
-    // 3) Локально — Blob + метаданные
-    await saveTrackLocal(track);
-    showToast('✅ Сохранено локально (офлайн доступно)', 'success');
+    // Облако без авторизации/онлайна — сохраняем как local (иначе трек потеряется)
+    if (choice === 'cloud' && !track.audioUrl) {
+      track.audioBlob = file;
+      track.source = 'local';
+      showToast('⚠️ Облако недоступно — сохранено локально', 'info');
+    }
 
-    // 4) Если получили URL — пишем в Firestore
+    await saveTrackLocal(track);
+
+    if (track.audioBlob) showToast('✅ Сохранено локально (офлайн доступно)', 'success');
+    else showToast('✅ Сохранено в облако', 'success');
+
+    // Firestore — только если есть URL
     if (track.audioUrl && authUser) {
       try {
         await db.collection('user_tracks').add({
@@ -719,7 +828,6 @@ async function confirmSaveChoice(choice) {
           isCustomized: false,
           source: 'cloud'
         });
-        showToast('☁️ Сохранено в облако', 'success');
       } catch (e) {
         console.warn('Firestore save failed:', e);
       }
@@ -773,7 +881,7 @@ async function loadPlayerTracks() {
             artist: data.artist,
             cover: data.cover,
             audioUrl: data.audioUrl,
-            audioBlob: null,           // ← облачный, без Blob
+            audioBlob: null,
             addedAt: data.addedAt?.toMillis?.() || Date.now(),
             source: 'cloud',
             cloudDocId: doc.id
@@ -808,6 +916,8 @@ async function loadPlayerTracks() {
       ? '<span class="track-badge offline-yes" title="Доступен офлайн">🟢</span>'
       : '<span class="track-badge offline-no" title="Только онлайн">⚪</span>';
 
+    const canDownload = !track.audioBlob && track.audioUrl;
+
     return `
       <div class="track-item ${isActive ? 'active' : ''}" data-track-id="${track.id}" onclick="playTrack('${track.id}')">
         <div class="track-cover">${coverHtml}</div>
@@ -816,6 +926,7 @@ async function loadPlayerTracks() {
           <div class="track-artist">${escapeHtml(track.artist)}</div>
         </div>
         <div class="track-actions">
+          ${canDownload ? `<button class="download-btn" onclick="event.stopPropagation(); requestDownload('${track.id}')" title="Скачать офлайн">⬇️</button>` : ''}
           <button class="edit-btn" onclick="event.stopPropagation(); openEditTrack('${track.id}')">✏️</button>
           <button class="delete-btn" onclick="event.stopPropagation(); deleteTrack('${track.id}')">🗑️</button>
         </div>
@@ -862,11 +973,8 @@ async function addTrack() {
       return;
     }
 
-    // Без авторизации — сразу сохраняем Blob локально (без облака)
-    if (!(await checkStorageQuota(file.size))) {
-      showToast('❌ Недостаточно места в хранилище', 'error');
-      return;
-    }
+    // Без авторизации — сразу Blob локально
+    if (!(await ensureStorageSpace(file.size))) return;
 
     try {
       showToast('⏳ Сохранение...', 'info');
@@ -875,7 +983,7 @@ async function addTrack() {
         title: trackData.title,
         artist: trackData.artist,
         cover: null,
-        audioBlob: file,             // ← Blob в IndexedDB
+        audioBlob: file,
         audioUrl: null,
         addedAt: Date.now(),
         source: 'local'
@@ -895,13 +1003,10 @@ async function playTrack(id, autoPlay = true) {
   const track = playerTracks.find(t => t.id === id);
   if (!track) { showToast('❌ Трек не найден', 'error'); return; }
 
-  // Приоритет: Blob из IndexedDB → потом URL из облака
+  // Приоритет: Blob из IndexedDB → URL из облака
   let src = null;
-  if (track.audioBlob) {
-    src = URL.createObjectURL(track.audioBlob);
-  } else if (track.audioUrl) {
-    src = track.audioUrl;
-  }
+  if (track.audioBlob) src = URL.createObjectURL(track.audioBlob);
+  else if (track.audioUrl) src = track.audioUrl;
   if (!src) { showToast('❌ Аудио не найдено', 'error'); return; }
 
   currentTrackId = id;
@@ -909,7 +1014,7 @@ async function playTrack(id, autoPlay = true) {
   if (!audio) audio = new Audio();
   audio.pause();
 
-  // Отзываем прошлый ObjectURL, чтобы не утекала память
+  // Отзываем прошлый ObjectURL
   if (audio.dataset && audio.dataset.objectUrl) {
     try { URL.revokeObjectURL(audio.dataset.objectUrl); } catch (e) {}
   }
@@ -1077,7 +1182,6 @@ function updateMediaSession(track) {
 async function deleteTrack(id) {
   if (!confirm('Удалить трек? Он будет удалён и из офлайн-хранилища.')) return;
   try {
-    // Отзываем ObjectURL, если играет
     if (audio && audio.dataset && audio.dataset.objectUrl) {
       try { URL.revokeObjectURL(audio.dataset.objectUrl); } catch (e) {}
       audio.dataset.objectUrl = '';
@@ -1148,7 +1252,6 @@ async function saveTrackEdit() {
     const localTracks = await getAllTracksLocal();
     const idx = localTracks.findIndex(t => t.id === id);
     if (idx !== -1) {
-      // ⚠️ Сохраняем audioBlob — спред не трогает его
       localTracks[idx] = { ...localTracks[idx], ...updates };
       await saveTrackLocal(localTracks[idx]);
     }
