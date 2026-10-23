@@ -1,5 +1,5 @@
 // sw.js — Service Worker для LoL Player
-const CACHE_VERSION = 'lol-player-v1';
+const CACHE_VERSION = 'lol-player-v2';  // ← было v1, стало v2
 const STATIC_CACHE = CACHE_VERSION + '-static';
 const RUNTIME_CACHE = CACHE_VERSION + '-runtime';
 
