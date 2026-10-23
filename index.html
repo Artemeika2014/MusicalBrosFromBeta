@@ -136,6 +136,8 @@
     .track-badge { font-size: 10px; padding: 2px 8px; border-radius: 20px; background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.4); margin-left: 4px; }
     .track-badge.cloud { background: rgba(59,130,246,0.15); color: #60a5fa; }
     .track-badge.local { background: rgba(234,179,8,0.15); color: #fbbf24; }
+    .track-badge.offline-yes { background: rgba(34,197,94,0.15); color: #22c55e; }
+    .track-badge.offline-no { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.35); }
 
     .player-widget {
       background: rgba(255,255,255,0.04); border-radius: 16px; padding: 14px 16px; border: 1px solid rgba(255,255,255,0.06);
@@ -218,7 +220,7 @@
 </head>
 <body>
 
-<div id="offlineBanner" class="hidden">📴 Офлайн-режим — только локальные треки</div>
+<div id="offlineBanner" class="hidden">📴 Офлайн-режим — играют только 🟢 треки</div>
 
 <div class="container">
   <div class="player-header">
@@ -320,8 +322,8 @@
       <h2>💾 Куда сохранить?</h2>
       <p style="color:rgba(234,241,255,0.5);font-size:14px;margin-bottom:8px;">Выберите, где будет храниться этот трек</p>
       <div class="choice-grid">
-        <button onclick="confirmSaveChoice('cloud')"><span class="icon">☁️</span><div><div>В облачную библиотеку</div><div class="desc">Доступно на всех устройствах через LoL ID</div></div></button>
-        <button onclick="confirmSaveChoice('local')"><span class="icon">📱</span><div><div>Только на этом устройстве</div><div class="desc">Локальное хранение, доступно офлайн</div></div></button>
+        <button onclick="confirmSaveChoice('cloud')"><span class="icon">☁️</span><div><div>В облачную библиотеку</div><div class="desc">Доступно на всех устройствах + локально для офлайна</div></div></button>
+        <button onclick="confirmSaveChoice('local')"><span class="icon">📱</span><div><div>Только на этом устройстве</div><div class="desc">Локальное хранение, работает офлайн</div></div></button>
         <button onclick="confirmSaveChoice('both')"><span class="icon">🔄</span><div><div>И в облако, и локально</div><div class="desc">Максимальная надёжность</div></div></button>
       </div>
       <div class="modal-actions"><button class="cancel-btn" onclick="cancelChoice()">❌ Отмена</button></div>
@@ -421,9 +423,28 @@ function formatTime(seconds) {
   const s = Math.floor(seconds % 60);
   return m + ':' + (s < 10 ? '0' : '') + s;
 }
+function formatSize(bytes) {
+  if (!bytes) return '0 Б';
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(0) + ' КБ';
+  return (bytes / 1024 / 1024).toFixed(1) + ' МБ';
+}
+
+// Проверка свободного места (для Blob в IndexedDB)
+async function checkStorageQuota(fileSize) {
+  if (!navigator.storage || !navigator.storage.estimate) return true;
+  try {
+    const { usage, quota } = await navigator.storage.estimate();
+    const free = quota - usage;
+    if (free < fileSize * 1.5) {
+      showToast(`⚠️ Мало места: свободно ${formatSize(free)}, нужно ${formatSize(fileSize * 1.5)}`, 'error');
+      return false;
+    }
+    return true;
+  } catch (e) { return true; }
+}
 
 // ========================================================================
-// INDEXEDDB
+// INDEXEDDB (хранит и метаданные, и Blob аудио)
 // ========================================================================
 let localDB = null;
 function openLocalDB() {
@@ -621,7 +642,7 @@ $('lolLoginBtn').addEventListener('click', async () => {
 $('lolPassInput').addEventListener('keydown', e => { if (e.key === 'Enter') $('lolLoginBtn').click(); });
 
 // ========================================================================
-// ВЫБОР СОХРАНЕНИЯ
+// ВЫБОР СОХРАНЕНИЯ — Blob в IndexedDB + (опционально) облако
 // ========================================================================
 let pendingFile = null;
 let pendingTrackData = null;
@@ -643,47 +664,65 @@ async function confirmSaveChoice(choice) {
 
   const file = pendingFile;
   const trackData = { ...pendingTrackData };
-
   $('choiceModal').classList.remove('active');
 
+  // Проверка места (нужно ~1.5x размера файла)
+  if (!(await checkStorageQuota(file.size))) {
+    showToast('❌ Недостаточно места в хранилище', 'error');
+    pendingFile = null;
+    pendingTrackData = null;
+    return;
+  }
+
   try {
-    showToast('⏳ Загрузка...', 'info');
-    let audioUrl = null;
+    showToast('⏳ Сохранение...', 'info');
 
-    try {
-      audioUrl = await uploadToCloudinary(file);
-    } catch (e) {
-      console.warn('Cloudinary upload failed:', e);
-      showToast('⚠️ Облачная загрузка не удалась, но локально сохраним', 'error');
-    }
-
+    // 1) Всегда сохраняем Blob в IndexedDB — для офлайна
     const track = {
       id: randId(),
       title: trackData.title || file.name.replace(/\.[^/.]+$/, ''),
       artist: trackData.artist || 'Неизвестный',
       cover: trackData.cover || null,
-      audioUrl: audioUrl,
+      audioBlob: file,             // ← сам файл в IndexedDB
+      audioUrl: null,
       addedAt: Date.now(),
       source: choice === 'cloud' ? 'cloud' : choice === 'local' ? 'local' : 'both'
     };
 
-    // Локально сохраняем ВСЕГДА (чтобы работало офлайн), даже если выбран только cloud
-    await saveTrackLocal(track);
-    showToast('✅ Сохранено локально', 'success');
-
+    // 2) Если нужно облако — загружаем на Cloudinary
     if (authUser && navigator.onLine && (choice === 'cloud' || choice === 'both')) {
-      await db.collection('user_tracks').add({
-        userId: authUser.uid,
-        originalTrackId: track.id,
-        title: track.title,
-        artist: track.artist,
-        cover: track.cover,
-        audioUrl: track.audioUrl,
-        addedAt: firebase.firestore.FieldValue.serverTimestamp(),
-        isCustomized: false,
-        source: 'cloud'
-      });
-      showToast('☁️ Сохранено в облако', 'success');
+      try {
+        showToast('☁️ Загрузка в облако...', 'info');
+        track.audioUrl = await uploadToCloudinary(file);
+      } catch (e) {
+        console.warn('Cloudinary upload failed:', e);
+        showToast('⚠️ Облако недоступно, сохраняем только локально', 'error');
+        track.source = 'local';
+      }
+    }
+
+    // 3) Локально — Blob + метаданные
+    await saveTrackLocal(track);
+    showToast('✅ Сохранено локально (офлайн доступно)', 'success');
+
+    // 4) Если получили URL — пишем в Firestore
+    if (track.audioUrl && authUser) {
+      try {
+        await db.collection('user_tracks').add({
+          userId: authUser.uid,
+          originalTrackId: track.id,
+          title: track.title,
+          artist: track.artist,
+          cover: track.cover,
+          audioUrl: track.audioUrl,
+          addedAt: firebase.firestore.FieldValue.serverTimestamp(),
+          isCustomized: false,
+          source: 'cloud'
+        });
+        showToast('☁️ Сохранено в облако', 'success');
+      } catch (e) {
+        console.warn('Firestore save failed:', e);
+      }
     }
 
     pendingFile = null;
@@ -709,7 +748,7 @@ async function loadPlayerTracks() {
   const container = $('trackListContainer');
   container.innerHTML = '<div class="empty-state"><div class="spinner"></div><p style="margin-top:12px;">Загрузка...</p></div>';
 
-  // 1) Всегда грузим локальные (работают офлайн)
+  // 1) Локальные из IndexedDB (работают всегда)
   let allTracks = [];
   try {
     allTracks = (await getAllTracksLocal()) || [];
@@ -734,6 +773,7 @@ async function loadPlayerTracks() {
             artist: data.artist,
             cover: data.cover,
             audioUrl: data.audioUrl,
+            audioBlob: null,           // ← облачный, без Blob
             addedAt: data.addedAt?.toMillis?.() || Date.now(),
             source: 'cloud',
             cloudDocId: doc.id
@@ -760,14 +800,19 @@ async function loadPlayerTracks() {
   container.innerHTML = `<div class="track-list">${playerTracks.map(track => {
     const isActive = track.id === currentTrackId;
     const coverHtml = track.cover ? `<img src="${track.cover}" onerror="this.style.display='none'">` : `<span class="no-cover">🎵</span>`;
-    const badge = track.source === 'cloud' ? '<span class="track-badge cloud">☁️</span>' :
-                  track.source === 'local' ? '<span class="track-badge local">📱</span>' :
-                  '<span class="track-badge">🔄</span>';
+
+    const sourceBadge = track.source === 'cloud' ? '<span class="track-badge cloud">☁️</span>' :
+                        track.source === 'local' ? '<span class="track-badge local">📱</span>' :
+                        '<span class="track-badge">🔄</span>';
+    const offlineBadge = track.audioBlob
+      ? '<span class="track-badge offline-yes" title="Доступен офлайн">🟢</span>'
+      : '<span class="track-badge offline-no" title="Только онлайн">⚪</span>';
+
     return `
       <div class="track-item ${isActive ? 'active' : ''}" data-track-id="${track.id}" onclick="playTrack('${track.id}')">
         <div class="track-cover">${coverHtml}</div>
         <div class="track-info">
-          <div class="track-title">${escapeHtml(track.title)} ${badge}</div>
+          <div class="track-title">${escapeHtml(track.title)} ${sourceBadge} ${offlineBadge}</div>
           <div class="track-artist">${escapeHtml(track.artist)}</div>
         </div>
         <div class="track-actions">
@@ -817,24 +862,29 @@ async function addTrack() {
       return;
     }
 
-    // Без авторизации — сразу локально, но только после успешной загрузки на Cloudinary
+    // Без авторизации — сразу сохраняем Blob локально (без облака)
+    if (!(await checkStorageQuota(file.size))) {
+      showToast('❌ Недостаточно места в хранилище', 'error');
+      return;
+    }
+
     try {
-      showToast('⏳ Загрузка...', 'info');
-      const url = await uploadToCloudinary(file);
+      showToast('⏳ Сохранение...', 'info');
       const track = {
         id: randId(),
         title: trackData.title,
         artist: trackData.artist,
         cover: null,
-        audioUrl: url,
+        audioBlob: file,             // ← Blob в IndexedDB
+        audioUrl: null,
         addedAt: Date.now(),
         source: 'local'
       };
       await saveTrackLocal(track);
-      showToast('✅ Сохранено локально', 'success');
+      showToast('✅ Сохранено локально (офлайн доступно)', 'success');
       loadPlayerTracks();
     } catch (e) {
-      showToast('❌ Не удалось загрузить аудио: ' + e.message, 'error');
+      showToast('❌ Ошибка сохранения: ' + e.message, 'error');
     }
   };
   input.click();
@@ -844,14 +894,28 @@ async function addTrack() {
 async function playTrack(id, autoPlay = true) {
   const track = playerTracks.find(t => t.id === id);
   if (!track) { showToast('❌ Трек не найден', 'error'); return; }
-  if (!track.audioUrl) { showToast('❌ Аудио не загружено', 'error'); return; }
+
+  // Приоритет: Blob из IndexedDB → потом URL из облака
+  let src = null;
+  if (track.audioBlob) {
+    src = URL.createObjectURL(track.audioBlob);
+  } else if (track.audioUrl) {
+    src = track.audioUrl;
+  }
+  if (!src) { showToast('❌ Аудио не найдено', 'error'); return; }
 
   currentTrackId = id;
 
-  // Переиспользуем существующий Audio — критично для фонового автоплея
   if (!audio) audio = new Audio();
   audio.pause();
-  audio.src = track.audioUrl;
+
+  // Отзываем прошлый ObjectURL, чтобы не утекала память
+  if (audio.dataset && audio.dataset.objectUrl) {
+    try { URL.revokeObjectURL(audio.dataset.objectUrl); } catch (e) {}
+  }
+  audio.dataset.objectUrl = track.audioBlob ? src : '';
+
+  audio.src = src;
   audio.load();
   audio.playbackRate = parseFloat($('speedSlider').value) || 1;
 
@@ -1011,9 +1075,16 @@ function updateMediaSession(track) {
 
 // ===== УДАЛЕНИЕ =====
 async function deleteTrack(id) {
-  if (!confirm('Удалить трек?')) return;
+  if (!confirm('Удалить трек? Он будет удалён и из офлайн-хранилища.')) return;
   try {
+    // Отзываем ObjectURL, если играет
+    if (audio && audio.dataset && audio.dataset.objectUrl) {
+      try { URL.revokeObjectURL(audio.dataset.objectUrl); } catch (e) {}
+      audio.dataset.objectUrl = '';
+    }
+
     await deleteTrackLocal(id);
+
     if (authUser && navigator.onLine) {
       try {
         const snap = await db.collection('user_tracks')
@@ -1022,6 +1093,7 @@ async function deleteTrack(id) {
         snap.forEach(doc => doc.ref.delete());
       } catch (e) { console.warn('Cloud delete fail:', e); }
     }
+
     if (currentTrackId === id) { audio.pause(); isPlaying = false; currentTrackId = null; }
     showToast('🗑️ Трек удален', 'success');
     loadPlayerTracks();
@@ -1064,19 +1136,23 @@ async function saveTrackEdit() {
   const title = $('editTrackTitle').value.trim() || 'Без названия';
   const artist = $('editTrackArtist').value.trim() || 'Неизвестный';
   const updates = { title, artist };
+
   if (tempCoverData && typeof tempCoverData === 'string' && tempCoverData.startsWith('data:image')) {
     try {
       const blob = await fetch(tempCoverData).then(r => r.blob());
       updates.cover = await uploadToCloudinary(blob);
     } catch (e) { showToast('❌ Ошибка обложки', 'error'); return; }
   }
+
   try {
     const localTracks = await getAllTracksLocal();
     const idx = localTracks.findIndex(t => t.id === id);
     if (idx !== -1) {
+      // ⚠️ Сохраняем audioBlob — спред не трогает его
       localTracks[idx] = { ...localTracks[idx], ...updates };
       await saveTrackLocal(localTracks[idx]);
     }
+
     if (authUser && navigator.onLine) {
       try {
         const snap = await db.collection('user_tracks')
@@ -1085,6 +1161,7 @@ async function saveTrackEdit() {
         snap.forEach(doc => doc.ref.update(updates));
       } catch (e) { console.warn('Cloud edit fail:', e); }
     }
+
     showToast('✅ Сохранено!', 'success');
     closeEditTrackModal();
     loadPlayerTracks();
@@ -1219,7 +1296,7 @@ window.addEventListener('online', () => {
 });
 window.addEventListener('offline', () => {
   updateOnlineStatus();
-  showToast('📴 Офлайн-режим: только локальные треки', 'info');
+  showToast('📴 Офлайн-режим: играют 🟢 треки', 'info');
 });
 
 // ========================================================================
